@@ -1,10 +1,10 @@
 {
   "app_name": "find-it-fix-it",
-  "src_hash": "991e331ef1bc44db4fff05f07d274e13ba2e8ce1",
+  "src_hash": "4387fe9fc0b56e628db34725598803141ecf2b15",
   "src_tag": "",
   "src_branch": "master",
   "npm_info": {
-  "name": "insights-frontend-starter-app",
+  "name": "find-it-fix-it",
   "version": "1.1.0",
   "dependencies": {
     "@babel/core": {
@@ -361,7 +361,7 @@
 },
   "travis": {
     "event_type": "push",
-    "build_number": "8",
-    "build_web_url": "https://travis-ci.org/benthomasson/find-it-fix-it/builds/508088011"
+    "build_number": "9",
+    "build_web_url": "https://travis-ci.org/benthomasson/find-it-fix-it/builds/508089260"
   }
 }
