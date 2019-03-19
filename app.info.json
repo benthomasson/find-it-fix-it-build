@@ -1,6 +1,6 @@
 {
   "app_name": "find-it-fix-it",
-  "src_hash": "4387fe9fc0b56e628db34725598803141ecf2b15",
+  "src_hash": "4743fd48bb96278f79cf1b77702433d29308b6bf",
   "src_tag": "",
   "src_branch": "master",
   "npm_info": {
@@ -361,7 +361,7 @@
 },
   "travis": {
     "event_type": "push",
-    "build_number": "9",
-    "build_web_url": "https://travis-ci.org/benthomasson/find-it-fix-it/builds/508089260"
+    "build_number": "10",
+    "build_web_url": "https://travis-ci.org/benthomasson/find-it-fix-it/builds/508154224"
   }
 }
