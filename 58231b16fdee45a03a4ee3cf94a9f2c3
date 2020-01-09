@@ -1,8 +1,12 @@
+@Library("github.com/RedHatInsights/insights-pipeline-lib@v3")
+import groovy.json.JsonSlurper
+
 node {
   stage ("deploy") {
+
     checkout scm
-    withCredentials(bindings: [sshUserPrivateKey(credentialsId: "insightsbot",
-                      keyFileVariable: "insightsbot",
+    withCredentials(bindings: [sshUserPrivateKey(credentialsId: "cloud-netstorage",
+                      keyFileVariable: "privateKeyFile",
                       passphraseVariable: "",
                       usernameVariable: "")]) {
 
@@ -10,9 +14,9 @@ node {
       String BRANCH = env.BRANCH_NAME.replaceAll("origin/", "")
 
       if (BRANCH == "prod-stable") {
-        PREFIX = "insights"
+        PREFIX = ""
       } else if (BRANCH == "prod-beta") {
-        PREFIX = "insightsbeta"
+        PREFIX = "beta/"
       } else {
         error "Bug: invalid branch name, we only support prod-beta/prod-stable and we got ${BRANCH}"
       }
@@ -29,17 +33,39 @@ node {
       String SLACK_TEXT = "${APP_NAME}/${BRANCH} [STATUS] - Deploy build ${app_info.build_id} started for GIT COMMIT ${app_info.build_hash}."
       slackSend message: SLACK_TEXT, color: 'black', channel: '#insights-bots'
 
-      AKAMAI_PATH = "/114034/${PREFIX}/platform/${APP_NAME}"
-      if (APP_NAME == "chrome") { AKAMAI_PATH = "/114034/${PREFIX}/static/chrome/" }
+      AKAMAI_BASE_PATH = "822386"
+      AKAMAI_APP_PATH = "/${AKAMAI_BASE_PATH}/${PREFIX}apps/${APP_NAME}"
 
-      configFileProvider([configFile(fileId: "a3e36eb0-9a5e-448f-b472-dc178d8fa133", variable: "AKAMAI_HOST_KEY")]) {
+      configFileProvider([configFile(fileId: "9f0c91bc-4feb-4076-9f3e-13da94ff3cef", variable: "AKAMAI_HOST_KEY")]) {
         sh """
            eval `ssh-agent`
-           ssh-add \"$insightsbot\"
+           ssh-add \"$privateKeyFile\"
            cp $AKAMAI_HOST_KEY ~/.ssh/known_hosts
            chmod 600 ~/.ssh/known_hosts
-           rsync -arv -e \"ssh -2\" * sshacs@unprotected.upload.akamai.com:${AKAMAI_PATH}
+           n=0
+           until [ \$n -ge 10 ]
+           do
+              rsync -arv -e \"ssh -2\" * sshacs@cloud-unprotected.upload.akamai.com:${AKAMAI_APP_PATH} && break
+              n=\$[\$n+1]
+              sleep 10
+           done
          """
+      }
+      
+      //Clear the cache for the app being deployed
+      openShiftUtils.withNode(image: "docker-registry.default.svc:5000/jenkins/jenkins-slave-base-centos7-python36:latest") {
+        //install python dependencies
+        sh "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
+        sh "python3 get-pip.py --user"
+        sh "wget https://raw.githubusercontent.com/RedHatInsights/insights-frontend-builder-common/master/src/akamai_cache_buster/bustCache.py"
+        sh "wget https://raw.githubusercontent.com/RedHatInsights/insights-frontend-builder-common/master/src/akamai_cache_buster/requirements.txt"
+        sh "python3 -m pip install --user -r requirements.txt"
+        sh "export PATH=$PATH:/home/jenkins/.local/bin"
+        withCredentials([file(credentialsId: "jenkins-eccu-cache-purge", variable: 'EDGERC')]) {
+          //path to .edgerc file is now set to $EDGERC"
+          //Bust the current cache
+          sh "python3 bustCache.py $EDGERC ${APP_NAME}"
+        }
       }
     }
   }
